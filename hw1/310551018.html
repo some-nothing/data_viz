@@ -8,51 +8,80 @@
     <style>
         line {
             stroke:black;
-            stroke-width:2
+            stroke-width:2;
         }
+
+        .navi {
+            cursor: pointer;
+        }
+
+        .x-line, .y-line {
+            stroke-width:1; 
+        }
+
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     
 </head>
-<body id="app">
-    <select v-model="x" class="form-control col-2">
-        <option value="sepal length">sepal length</option>
-        <option value="sepal width">sepal width</option>
-        <option value="petal length">petal length</option>
-        <option value="petal width">petal width</option>
-    </select>
-
-    <select v-model="y" class="form-control col-2">
-        <option value="sepal length">sepal length</option>
-        <option value="sepal width">sepal width</option>
-        <option value="petal length">petal length</option>
-        <option value="petal width">petal width</option>
-    </select>
-
-    <br>
-
-    <svg width="600" height="600">
-    </svg>
+<body>
+    <div id="app">
+        <span class="tooltip">{{display_axis}}</span>
+        <br>
+        <select v-model="x" class="form-control col-2">
+            <option value="sepal length">sepal length</option>
+            <option value="sepal width">sepal width</option>
+            <option value="petal length">petal length</option>
+            <option value="petal width">petal width</option>
+        </select>
+    
+        <select v-model="y" class="form-control col-2">
+            <option value="sepal length">sepal length</option>
+            <option value="sepal width">sepal width</option>
+            <option value="petal length">petal length</option>
+            <option value="petal width">petal width</option>
+        </select>
+    
+        <br>
+    
+        <svg width="600" height="600">
+            <g>
+            </g>
+        </svg>
+    </div>
 
     <script>
+        function hide_or_show() {
+            cls = `.dot-${d3.select(this).attr('fill')}`
+            if(d3.select(cls).attr('visibility') == '') {
+                d3.selectAll(cls).attr('visibility', 'hidden')
+            } else {
+                d3.selectAll(cls).attr('visibility', '')
+            }
+        }
+
         var app = Vue.createApp({
             data() {
                 return {
                     data: {},
                     x: 'sepal length',
-                    y: 'sepal width'
+                    y: 'sepal width',
+                    display_axis: '(0, 0)'
                 }
             },
             async mounted() {
                 this.data = await d3.csv("http://vis.lab.djosix.com:2020/data/iris.csv");
                 this.draw(this.x, this.y);
+
+                d3.select('svg g').append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 0).attr('class', 'x-line');
+                d3.select('svg g').append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 0).attr('class', 'y-line');
             },
             methods: {
+                
                 draw(x, y){
-                    const svg = d3.select("svg");
+                    let svg = d3.select("svg").select('g');
 
-                    svg.selectAll("*").remove();
+                    svg.selectAll(".dot").remove();
 
                     svg.append('line').attr('x1', 20).attr('y1', 580).attr('x2', 600).attr('y2', 580);
                     svg.append('line').attr('x1', 20).attr('y1', 580).attr('x2', 20).attr('y2', 20);
@@ -64,6 +93,15 @@
                         svg.append('text').attr('x', 0).attr('y', 580 - 50 * i + 5).html(i);
                         svg.append('text').attr('x', 50 * i + 20 - 5).attr('y', 600).html(i);
                     }
+
+                    svg.append('circle').attr('class', 'navi').attr('fill', 'red').attr('r', 8).attr('cx', 50).attr('cy', 40).on('click', hide_or_show);
+                    svg.append('text').attr('x', 65).attr('y', 45).html('Iris-setosa');
+
+                    svg.append('circle').attr('class', 'navi').attr('fill', 'blue').attr('r', 8).attr('cx', 50).attr('cy', 60).on('click', hide_or_show);
+                    svg.append('text').attr('x', 65).attr('y', 65).html('Iris-versicolor');
+
+                    svg.append('circle').attr('class', 'navi').attr('fill', 'green').attr('r', 8).attr('cx', 50).attr('cy', 80).on('click', hide_or_show);
+                    svg.append('text').attr('x', 65).attr('y', 85).html('Iris-virginica');
 
                     this.data.forEach(function(elem, i) {
                         if(elem['sepal width'] != 0){
@@ -79,8 +117,25 @@
                             x_axis = elem[x] * 50 + 20;
                             y_axis = 600 - (elem[y] * 50) - 20;
 
-                            svg.append("circle").attr("cx", x_axis).attr("cy", y_axis).attr("r", 3).attr("fill", color);
+                            svg.append("circle").attr("cx", x_axis).attr("cy", y_axis).attr("r", 3).attr("fill", color).attr('class', `dot-${color} dot`)
+                                .attr('data-x', elem[x]).attr('data-y', elem[y]).attr('data-class', elem['class']).attr('visibility', '');
+                            
                         }
+                    });
+
+                    d3.selectAll('.dot').on('mouseover', function() {
+                        dot = d3.select(this);
+                        app.display_axis = `(${dot.attr('data-x')}, ${dot.attr('data-y')}) - ${dot.attr('data-class')}`
+                    }).on('mouseleave', function() {
+                        app.display_axis = `(0 , 0)`
+                    })
+                    
+                    d3.select('svg').on('mousemove', function(e) {
+                        let pt = d3.pointer(e);
+
+                        d3.select('.x-line').attr('x1', pt[0]).attr('y1', 580).attr('x2', pt[0] - 1).attr('y2', pt[1] - 1);
+                        d3.select('.y-line').attr('x1', 20).attr('y1', pt[1]).attr('x2', pt[0] - 1).attr('y2', pt[1] - 1);
+
                     });
                 }
             },
