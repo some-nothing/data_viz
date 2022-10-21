@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>310551018 HW2</title>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <style>
+        /*line {*/
+        /*    opacity: 0.5;*/
+        /*}*/
+        /*line:hover {*/
+        /*    opacity: 1;*/
+        /*}*/
+        .Iris-setosa {
+            stroke: #73adb0;
+        }
+
+        .Iris-versicolor {
+            stroke: #f59014;
+        }
+
+        .Iris-virginica {
+            stroke: #8b2e5e;
+        }
+
+        rect {
+            width: 30px;
+            height: 10px;
+        }
+
+        text {
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <select name="" id="axis1" v-model="axis1">
+            <option value="sepal length" selected>sepal length</option>
+            <option value="sepal width">sepal width</option>
+            <option value="petal length">petal length</option>
+            <option value="petal width">petal width</option>
+        </select>
+
+        <select name="" id="axis2" v-model="axis2">
+            <option value="sepal length">sepal length</option>
+            <option value="sepal width" selected>sepal width</option>
+            <option value="petal length">petal length</option>
+            <option value="petal width">petal width</option>
+        </select>
+
+        <select name="" id="axis3" v-model="axis3">
+            <option value="sepal length">sepal length</option>
+            <option value="sepal width">sepal width</option>
+            <option value="petal length" selected>petal length</option>
+            <option value="petal width">petal width</option>
+        </select>
+
+        <select name="" id="axis4" v-model="axis4">
+            <option value="sepal length">sepal length</option>
+            <option value="sepal width">sepal width</option>
+            <option value="petal length">petal length</option>
+            <option value="petal width" selected>petal width</option>
+        </select>
+        <br>
+        <svg width="600" height="320">
+            <g class="legend"></g>
+        </svg>
+    </div>
+
+    <script>
+
+        let app = Vue.createApp({
+            data() {
+                return {
+                    data: {},
+                    axis_x: [30, 150, 270, 390],
+                    axis1: 'sepal length',
+                    axis2: 'sepal width',
+                    axis3: 'petal length',
+                    axis4: 'petal width'
+                }
+            },
+            async mounted() {
+                let linear = d3.scaleLinear()
+                    .domain([0, 10])
+                    .range([300, 0]);
+
+                let axis = d3.axisLeft(linear).ticks(10);
+                let svg = d3.select('svg');
+
+                svg.append('g').call(axis).attr('transform', 'translate(' + this.axis_x[0] + ' 10)');
+                svg.append('g').call(axis).attr('transform', 'translate(' + this.axis_x[1] + ' 10)');
+                svg.append('g').call(axis).attr('transform', 'translate(' + this.axis_x[2] + ' 10)');
+                svg.append('g').call(axis).attr('transform', 'translate(' + this.axis_x[3] + ' 10)');
+
+                this.data = await d3.csv("http://vis.lab.djosix.com:2020/data/iris.csv");
+
+                this.draw()
+
+                svg.selectAll('rect').data(['#73adb0', '#f59014', '#8b2e5e']).enter().append('rect')
+                    .attr('x', 430).attr('y', (x, i)=>{return i*30}).style('fill', (x)=>{return x})
+
+                svg.select('.legend').selectAll('text').data(['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']).enter().append('text')
+                    .attr('x', 480).attr('y', (x, i)=>{return i*30+10}).text((e)=>{return e})
+            },
+            methods: {
+                draw() {
+                    let svg = d3.select('svg');
+                    d3.selectAll("line").remove()
+
+                    let linear = d3.scaleLinear()
+                        .domain([0, 10])
+                        .range([300, 0]);
+
+                    let lines = svg.selectAll('line').data(this.data)
+                    let enter = lines.enter()
+
+                    let axis_id = [
+                        this.axis1, this.axis2, this.axis3, this.axis4
+                    ]
+
+                    this.axis_x.forEach((x, i)=>{
+                        if(i < 3) {
+                            enter.append('line')
+                                .attr('x1', this.axis_x[i])
+                                .attr('y1', (x)=>{return linear(x[axis_id[i]])})
+                                .attr('x2', this.axis_x[i+1])
+                                .attr('y2', (x)=>{return linear(x[axis_id[i+1]])})
+                                .style('stroke-width', 0.7)
+                                .attr('class', (a)=>{return a['class']})
+                                .attr('transform', 'translate(0 10)');
+                        }
+                    });
+                }
+            },
+            watch: {
+                axis1() {
+                    this.draw()
+                },
+                axis2() {
+                    this.draw()
+                },
+                axis3() {
+                    this.draw()
+                },
+                axis4() {
+                    this.draw()
+                }
+            }
+        }).mount('#app');
+
+    </script>
+</body>
+</html>
